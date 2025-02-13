@@ -15,5 +15,3 @@ A web application that displays Mattermost custom emojis.
 
 You can access the live version at:  
 [https://taila.cz/gallery](https://taila.cz/gallery)
-
-## Getting Started
