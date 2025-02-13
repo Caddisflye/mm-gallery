@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mattermost Emoji Gallery</title>
+    <style>
+        /* Dark Mode & Minimalistic Styling */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #searchContainer {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #searchInput {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        #resultsCounter {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #bbb;
+        }
+
+        #sortDateButton {
+            margin-left: 10px;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        #sortDateButton:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #333;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Fixed column widths */
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 60px;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 200px;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 150px;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 150px;
+        }
+
+        th {
+            background-color: #333;
+        }
+
+        td {
+            background-color: #1e1e1e;
+        }
+
+        img.emoji {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+        }
+
+        /* Pagination Controls */
+        .pagination {
+            text-align: center;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+
+        .pagination button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            font-size: 16px;
+            margin: 0 10px;
+            vertical-align: middle;
+        }
+
+        /* Loading Spinner Styles */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(18, 18, 18, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Refresh Cache Button Styles */
+        #refreshCacheButton {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 10000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #refreshCacheButton:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Spinner Overlay -->
+    <div id="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <h1>Mattermost Emoji Gallery</h1>
+
+    <!-- Search Input, Results Counter, and Sort Button -->
+    <div id="searchContainer">
+        <input type="text" id="searchInput" placeholder="Search by emoji name or creator">
+        <button id="sortDateButton">Sort by Date: Ascending</button>
+        <div id="resultsCounter">Results: 0</div>
+    </div>
+
+    <!-- Top Pagination Controls -->
+    <div id="paginationTop" class="pagination">
+        <button id="prevButtonTop">Previous</button>
+        <span id="pageInfoTop">Page 1</span>
+        <button id="nextButtonTop">Next</button>
+    </div>
+
+    <!-- Emoji Table -->
+    <table id="emojiTable">
+        <thead>
+            <tr>
+                <th>Emoji</th>
+                <th>Name</th>
+                <th>Creator</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Bottom Pagination Controls -->
+    <div id="paginationBottom" class="pagination">
+        <button id="prevButtonBottom">Previous</button>
+        <span id="pageInfoBottom">Page 1</span>
+        <button id="nextButtonBottom">Next</button>
+    </div>
+
+    <!-- Refresh Cache Button -->
+    <button id="refreshCacheButton" title="Refresh cache and reload">🔄</button>
+
+    <script>
+        // Constants for caching
+        const EMOJIS_CACHE_KEY = 'allEmojisCache';
+        const USERS_CACHE_KEY = 'usersByIdCache';
+        // Cache expiration set to 1 hour (in milliseconds)
+        const CACHE_DURATION = 1 * 60 * 60 * 1000;
+
+        // Utility functions for caching data
+        function setCache(key, data) {
+            const payload = { timestamp: Date.now(), data: data };
+            localStorage.setItem(key, JSON.stringify(payload));
+        }
+        function getCache(key) {
+            const payload = localStorage.getItem(key);
+            if (!payload) return null;
+            try {
+                const parsed = JSON.parse(payload);
+                if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+                    return parsed.data;
+                } else {
+                    localStorage.removeItem(key);
+                    return null;
+                }
+            } catch (e) {
+                localStorage.removeItem(key);
+                return null;
+            }
+        }
+
+        // Settings: 
+        // VIEW_PER_PAGE defines how many items are shown per UI page.
+        // FETCH_PER_PAGE defines how many items to fetch per API call.
+        const VIEW_PER_PAGE = 50;
+        const FETCH_PER_PAGE = 200;
+
+        let currentPage = 0;
+        let allEmojis = [];
+        let filteredEmojis = [];
+        let usersById = {};
+
+        // Sorting flag and order (true for ascending, false for descending)
+        let sortDateAsc = true;
+
+        // Update URL query parameters based on search and page
+        function updateURL() {
+            const params = new URLSearchParams(window.location.search);
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            if (searchTerm) {
+                params.set('q', searchTerm);
+            } else {
+                params.delete('q');
+            }
+            params.set('page', currentPage);
+            history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+        }
+
+        // Read query parameters on page load and initialize search and page
+        function initializeFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const q = params.get('q') || '';
+            const page = parseInt(params.get('page'), 10);
+            document.getElementById('searchInput').value = q;
+            currentPage = isNaN(page) ? 0 : page;
+        }
+
+        // Recursive function to fetch all emoji pages from our API using FETCH_PER_PAGE
+        async function fetchEmojis(page = 0, perPage = FETCH_PER_PAGE, emojis = []) {
+            const response = await fetch(`/api/emoji?page=${page}&per_page=${perPage}`);
+            if (!response.ok)
+                throw new Error(`Error fetching emojis on page ${page}: ${response.statusText}`);
+            const data = await response.json();
+            emojis = emojis.concat(data);
+            if (data.length === perPage) {
+                return fetchEmojis(page + 1, perPage, emojis);
+            }
+            return emojis;
+        }
+
+        // Fetch user details from our API endpoint
+        async function fetchUsersByIds(ids) {
+            const response = await fetch(`/api/users/ids`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ids)
+            });
+            if (!response.ok)
+                throw new Error(`Error fetching user details: ${response.statusText}`);
+            return await response.json();
+        }
+
+        // Helper: get the emoji image URL from our server
+        function getEmojiImageURL(emojiId) {
+            return `/api/emoji/${emojiId}/image`;
+        }
+
+        // Format the timestamp (create_at) into a human-readable date string.
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString(); // You can customize this format as needed.
+        }
+
+        // Render a page of emojis into the table and update both pagination controls
+        async function renderPage(page) {
+            const tbody = document.querySelector('#emojiTable tbody');
+            tbody.innerHTML = ''; // Clear previous rows
+            const start = page * VIEW_PER_PAGE;
+            const end = Math.min(start + VIEW_PER_PAGE, filteredEmojis.length);
+            const pageEmojis = filteredEmojis.slice(start, end);
+            const totalPages = Math.ceil(filteredEmojis.length / VIEW_PER_PAGE);
+
+            // Update pagination info for top controls
+            document.getElementById('pageInfoTop').textContent = `Page ${page + 1} of ${totalPages}`;
+            document.getElementById('prevButtonTop').disabled = (page === 0);
+            document.getElementById('nextButtonTop').disabled = (end >= filteredEmojis.length);
+
+            // Update pagination info for bottom controls
+            document.getElementById('pageInfoBottom').textContent = `Page ${page + 1} of ${totalPages}`;
+            document.getElementById('prevButtonBottom').disabled = (page === 0);
+            document.getElementById('nextButtonBottom').disabled = (end >= filteredEmojis.length);
+
+            // Build table rows for each emoji
+            for (const emoji of pageEmojis) {
+                const tr = document.createElement('tr');
+                // Emoji Image Cell
+                const tdImg = document.createElement('td');
+                const img = document.createElement('img');
+                img.className = 'emoji';
+                img.alt = emoji.name;
+                img.src = getEmojiImageURL(emoji.id);
+                tdImg.appendChild(img);
+                tr.appendChild(tdImg);
+                // Emoji Name Cell
+                const tdName = document.createElement('td');
+                tdName.textContent = emoji.name;
+                tr.appendChild(tdName);
+                // Creator Username Cell
+                const tdCreator = document.createElement('td');
+                const user = usersById[emoji.creator_id];
+                tdCreator.textContent = user ? user.username : 'Unknown';
+                tr.appendChild(tdCreator);
+                // Created Date Cell
+                const tdCreated = document.createElement('td');
+                tdCreated.textContent = formatTimestamp(emoji.create_at);
+                tr.appendChild(tdCreated);
+                tbody.appendChild(tr);
+            }
+            updateURL();
+        }
+
+        // Apply search filter on all loaded emojis without resetting currentPage.
+        // Also applies current sorting (by creation date).
+        function applySearchFilter() {
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (searchTerm === '') {
+                filteredEmojis = [...allEmojis];
+            } else {
+                filteredEmojis = allEmojis.filter(emoji => {
+                    const emojiMatch = emoji.name.toLowerCase().includes(searchTerm);
+                    let creatorMatch = false;
+                    const user = usersById[emoji.creator_id];
+                    if (user && user.username) {
+                        creatorMatch = user.username.toLowerCase().includes(searchTerm);
+                    }
+                    return emojiMatch || creatorMatch;
+                });
+            }
+            // Sort by creation date if needed.
+            filteredEmojis.sort((a, b) => sortDateAsc ? a.create_at - b.create_at : b.create_at - a.create_at);
+            document.getElementById('resultsCounter').textContent = `Results: ${filteredEmojis.length}`;
+            renderPage(currentPage);
+        }
+
+        // Event listener for search input
+        document.getElementById('searchInput').addEventListener('input', () => {
+            currentPage = 0; // Reset to first page on new search
+            applySearchFilter();
+        });
+
+        // Pagination event listeners: Define common functions for both top and bottom controls.
+        function goToPrev() {
+            if (currentPage > 0) {
+                currentPage--;
+                renderPage(currentPage);
+            }
+        }
+        function goToNext() {
+            if ((currentPage + 1) * VIEW_PER_PAGE < filteredEmojis.length) {
+                currentPage++;
+                renderPage(currentPage);
+            }
+        }
+        document.getElementById('prevButtonTop').addEventListener('click', goToPrev);
+        document.getElementById('nextButtonTop').addEventListener('click', goToNext);
+        document.getElementById('prevButtonBottom').addEventListener('click', goToPrev);
+        document.getElementById('nextButtonBottom').addEventListener('click', goToNext);
+
+        // Sort-by-date button event listener
+        document.getElementById('sortDateButton').addEventListener('click', () => {
+            sortDateAsc = !sortDateAsc;
+            document.getElementById('sortDateButton').textContent = `Sort by Date: ${sortDateAsc ? 'Ascending' : 'Descending'}`;
+            // Reapply search filter (which also sorts the filteredEmojis)
+            applySearchFilter();
+        });
+
+        // Refresh Cache Button Event Listener
+        document.getElementById('refreshCacheButton').addEventListener('click', () => {
+            localStorage.removeItem(EMOJIS_CACHE_KEY);
+            localStorage.removeItem(USERS_CACHE_KEY);
+            console.log('Cache cleared. Reloading page...');
+            window.location.reload(true);
+        });
+
+        // Initialization: fetch all emojis, then user details, then render using URL parameters with caching
+        (async function initialize() {
+            try {
+                initializeFromURL();
+                // Try to load cached emojis
+                let cachedEmojis = localStorage.getItem(EMOJIS_CACHE_KEY);
+                if (cachedEmojis) {
+                    const parsed = JSON.parse(cachedEmojis);
+                    if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+                        allEmojis = parsed.data;
+                        console.log('Loaded emojis from cache.');
+                    } else {
+                        localStorage.removeItem(EMOJIS_CACHE_KEY);
+                    }
+                }
+                if (!allEmojis.length) {
+                    allEmojis = await fetchEmojis(0, FETCH_PER_PAGE);
+                    localStorage.setItem(EMOJIS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: allEmojis }));
+                    console.log('Fetched emojis from API and cached.');
+                }
+                filteredEmojis = [...allEmojis];
+                document.getElementById('resultsCounter').textContent = `Results: ${filteredEmojis.length}`;
+
+                // Try to load cached user details
+                let cachedUsers = localStorage.getItem(USERS_CACHE_KEY);
+                if (cachedUsers) {
+                    const parsed = JSON.parse(cachedUsers);
+                    if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+                        usersById = parsed.data;
+                        console.log('Loaded user details from cache.');
+                    } else {
+                        localStorage.removeItem(USERS_CACHE_KEY);
+                    }
+                }
+                if (Object.keys(usersById).length === 0) {
+                    const creatorIds = [...new Set(allEmojis.map(e => e.creator_id))];
+                    const users = await fetchUsersByIds(creatorIds);
+                    users.forEach(user => { usersById[user.id] = user; });
+                    localStorage.setItem(USERS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: usersById }));
+                    console.log('Fetched user details from API and cached.');
+                }
+
+                applySearchFilter();
+                renderPage(currentPage);
+            } catch (error) {
+                console.error('Initialization error:', error);
+            } finally {
+                // Hide the loading spinner once initialization is complete
+                document.getElementById('loading').style.display = 'none';
+            }
+        })();
+    </script>
+</body>
+
+</html>
